@@ -1,65 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { updateStyles } from '../styles/update';
 import Footer from './footer';
+import { supabase } from '../../lib/supabase';
 
 // Define TypeScript interface for Update
 interface Update {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  date: string;
-  organization: string;
-  image: any;
+  content: string;
+  created_at: string;
+  charity: {
+    organization_name: string;
+  } | null; // Make charity nullable to match database response
+  image_url: string | null;
   category: string;
-  isNew?: boolean;
-  readTime: string;
+  is_public: boolean;
+  is_featured: boolean;
+  read_time_minutes: number;
 }
 
-// Update data array with proper typing
-const updateData: Update[] = [
-  {
-    id: 1,
-    title: "Clean Water Project Reaches 10,000 Beneficiaries",
-    description: "Our clean water initiative has successfully provided access to safe drinking water for over 10,000 people in rural communities. New water purification systems have been installed across 15 villages, dramatically reducing waterborne diseases.",
-    date: "2 hours ago",
-    organization: "Water for Life",
-    image: require('../../../assets/images/campaign-water.jpg'),
-    category: "Project Update",
-    isNew: true,
-    readTime: "2 min read"
-  },
-  {
-    id: 2,
-    title: "Education Program Expansion to 5 New Regions",
-    description: "We're excited to announce the expansion of our Education for All program. This will provide educational resources to an additional 2,000 children in remote areas with new schools and learning materials.",
-    date: "1 day ago",
-    organization: "Education First",
-    image: require('../../../assets/images/second.jpg'),
-    category: "Announcement",
-    readTime: "3 min read"
-  },
-  {
-    id: 3,
-    title: "Healthcare Centers Now Fully Operational",
-    description: "All three mobile medical clinics are now fully operational and serving communities in the northern region. Over 500 patients received medical care in the first week of operations.",
-    date: "2 days ago",
-    organization: "Health Aid International",
-    image: require('../../../assets/images/third.jpg'),
-    category: "Progress Report",
-    readTime: "2 min read"
-  },
-  {
-    id: 4,
-    title: "New Partnership with Local Farmers Cooperative",
-    description: "We've partnered with local agricultural cooperatives to enhance our food security program. This collaboration will help sustain community gardens and improve farming techniques for long-term sustainability.",
-    date: "3 days ago",
-    organization: "Food Security Network",
-    image: require('../../../assets/images/fourth.jpg'),
-    category: "Partnership",
-    readTime: "4 min read"
-  }
-];
+// Database response interface
+interface UpdateResponse {
+  id: string;
+  campaign_id: string | null;
+  charity_id: string | null;
+  title: string;
+  content: string;
+  image_url: string | null;
+  category: string;
+  is_public: boolean;
+  is_featured: boolean;
+  view_count: number;
+  like_count: number;
+  read_time_minutes: number;
+  created_at: string;
+  updated_at: string;
+  charity: {
+    organization_name: string;
+  } | null;
+}
 
 // Define props interface for UpdateTab component
 interface UpdateTabProps {
@@ -67,8 +47,39 @@ interface UpdateTabProps {
   isLast: boolean;
 }
 
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffTime / (1000 * 60));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+};
+
 // Reusable Update Component with distinct card design
 const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast }) => {
+  const readTime = update.read_time_minutes || 1;
+  
+  // Fallback image if update image is not available
+  const imageSource = update.image_url 
+    ? { uri: update.image_url }
+    : require('../../../assets/images/campaign-water.jpg');
+
   return (
     <TouchableOpacity 
       style={[
@@ -86,9 +97,11 @@ const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast }) => {
         <View style={updateStyles.cardHeader}>
           <View style={updateStyles.organizationContainer}>
             <View style={updateStyles.organizationDot} />
-            <Text style={updateStyles.organizationText}>{update.organization}</Text>
+            <Text style={updateStyles.organizationText}>
+              {update.charity?.organization_name || 'Organization'}
+            </Text>
           </View>
-          <Text style={updateStyles.dateText}>{update.date}</Text>
+          <Text style={updateStyles.dateText}>{formatDate(update.created_at)}</Text>
         </View>
 
         {/* Title */}
@@ -96,7 +109,7 @@ const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast }) => {
 
         {/* Description */}
         <Text style={updateStyles.updateDescription} numberOfLines={2}>
-          {update.description}
+          {update.content}
         </Text>
 
         {/* Footer with Category and Read Time */}
@@ -104,15 +117,17 @@ const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast }) => {
           <View style={updateStyles.categoryContainer}>
             <View style={[
               updateStyles.categoryPill,
-              update.isNew && updateStyles.newCategoryPill
+              update.is_featured && updateStyles.newCategoryPill
             ]}>
               <Text style={updateStyles.categoryText}>
-                {update.category}
-                {update.isNew && ' • New'}
+                {update.category || 'General'}
+                {update.is_featured && ' • Featured'}
               </Text>
             </View>
           </View>
-          <Text style={updateStyles.readTimeText}>{update.readTime}</Text>
+          <Text style={updateStyles.readTimeText}>
+            {readTime} min read
+          </Text>
         </View>
 
         {/* Progress line at bottom */}
@@ -128,6 +143,48 @@ interface UpdatesProps {
 }
 
 export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
+  const [updates, setUpdates] = useState<Update[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUpdates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaign_updates')
+        .select(`
+          *,
+          charity:charity_foundations(organization_name)
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform the data to match our Update interface
+      const transformedData: Update[] = (data || []).map((item: UpdateResponse) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        created_at: item.created_at,
+        charity: item.charity,
+        image_url: item.image_url,
+        category: item.category,
+        is_public: item.is_public,
+        is_featured: item.is_featured,
+        read_time_minutes: item.read_time_minutes
+      }));
+      
+      setUpdates(transformedData);
+    } catch (error) {
+      console.error('Error fetching updates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUpdates();
+  }, []);
+
   return (
     <View style={updateStyles.mainContainer}>
       <ScrollView 
@@ -144,7 +201,7 @@ export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
           </View>
           <View style={updateStyles.headerStats}>
             <View style={updateStyles.statPill}>
-              <Text style={updateStyles.statPillNumber}>{updateData.length}</Text>
+              <Text style={updateStyles.statPillNumber}>{updates.length}</Text>
               <Text style={updateStyles.statPillLabel}>Updates</Text>
             </View>
           </View>
@@ -163,26 +220,42 @@ export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
             </View>
           </View>
 
-          {/* Updates List */}
-          <View style={updateStyles.updatesList}>
-            {updateData.map((update, index) => (
-              <View key={update.id} style={updateStyles.timelineItem}>
-                {/* Timeline line and dot */}
-                <View style={updateStyles.timelineLineContainer}>
-                  <View style={updateStyles.timelineDot} />
-                  {index !== updateData.length - 1 && (
-                    <View style={updateStyles.timelineLine} />
-                  )}
+          {loading ? (
+            <View style={updateStyles.loadingContainer}>
+              <Text style={updateStyles.loadingText}>Loading updates...</Text>
+            </View>
+          ) : (
+            <View style={updateStyles.updatesList}>
+              {updates.map((update, index) => (
+                <View key={update.id} style={updateStyles.timelineItem}>
+                  {/* Timeline line and dot */}
+                  <View style={updateStyles.timelineLineContainer}>
+                    <View style={updateStyles.timelineDot} />
+                    {index !== updates.length - 1 && (
+                      <View style={updateStyles.timelineLine} />
+                    )}
+                  </View>
+                  
+                  {/* Update Card */}
+                  <UpdateTab 
+                    update={update} 
+                    isLast={index === updates.length - 1}
+                  />
                 </View>
-                
-                {/* Update Card */}
-                <UpdateTab 
-                  update={update} 
-                  isLast={index === updateData.length - 1}
-                />
-              </View>
-            ))}
-          </View>
+              ))}
+
+              {updates.length === 0 && (
+                <View style={updateStyles.noUpdatesContainer}>
+                  <Text style={updateStyles.noUpdatesText}>
+                    No updates available yet.
+                  </Text>
+                  <Text style={updateStyles.noUpdatesSubtext}>
+                    Check back later for news from our partner organizations.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Bottom Spacing */}

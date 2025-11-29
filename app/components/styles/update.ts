@@ -241,6 +241,33 @@ export const updateStyles = StyleSheet.create({
   bottomSpacing: {
     height: 20,
   },
+
+  // New styles for loading and empty states
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#718096',
+  },
+  noUpdatesContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  noUpdatesText: {
+    fontSize: 16,
+    color: '#4A5568',
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noUpdatesSubtext: {
+    fontSize: 14,
+    color: '#718096',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });
 
 export default updateStyles;

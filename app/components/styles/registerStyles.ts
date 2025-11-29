@@ -51,6 +51,49 @@ export const registerStyles = StyleSheet.create({
     padding: 24,
     paddingTop: 32,
   },
+  profilePictureContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  profilePictureButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  profilePictureImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  profilePicturePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePictureText: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  removePictureButton: {
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#ef4444',
+    borderRadius: 6,
+  },
+  removePictureText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   sectionLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -169,4 +212,5 @@ export const registerStyles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-export default {};
+
+export default registerStyles;

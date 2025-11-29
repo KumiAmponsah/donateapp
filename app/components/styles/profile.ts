@@ -24,16 +24,18 @@ export const profileStyles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#4A5568',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
+  // Add to existing profileStyles
+profileImage: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  backgroundColor: '#4A5568',
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderWidth: 3,
+  borderColor: '#FFFFFF',
+  overflow: 'hidden', // Add this for proper image display
+},
   profileInitials: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -300,6 +302,23 @@ export const profileStyles = StyleSheet.create({
     color: '#C53030',
     fontWeight: '500',
   },
+  // Add to existing profileStyles
+uploadingOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  borderRadius: 18,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+uploadingText: {
+  color: '#FFFFFF',
+  fontSize: 10,
+  fontWeight: '600',
+},
 });
 
 export default profileStyles;

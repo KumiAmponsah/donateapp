@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { registerStyles } from '../styles/registerStyles'; // Reuse styles
+import { registerStyles } from '../styles/registerStyles';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -37,13 +37,11 @@ export default function Login() {
         password: formData.password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.user) {
         Alert.alert('Success', 'Login successful!');
-        // You can navigate to the main app here
+        router.replace('/'); // Navigate to homepage
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An error occurred during login');
@@ -64,7 +62,6 @@ export default function Login() {
           contentContainerStyle={registerStyles.scrollViewContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
           <View style={registerStyles.header}>
             <TouchableOpacity 
               style={registerStyles.backButton}
@@ -80,7 +77,6 @@ export default function Login() {
             <View style={registerStyles.placeholder} />
           </View>
 
-          {/* Form */}
           <View style={registerStyles.formContainer}>
             <View style={registerStyles.inputContainer}>
               <Text style={registerStyles.label}>Email Address</Text>
@@ -113,16 +109,12 @@ export default function Login() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={registerStyles.registerButtonText}>
-                  Sign In
-                </Text>
+                <Text style={registerStyles.registerButtonText}>Sign In</Text>
               )}
             </TouchableOpacity>
 
             <View style={registerStyles.loginContainer}>
-              <Text style={registerStyles.loginText}>
-                Don't have an account?{' '}
-              </Text>
+              <Text style={registerStyles.loginText}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/components/pages/register')}>
                 <Text style={registerStyles.loginLink}>Sign Up</Text>
               </TouchableOpacity>
