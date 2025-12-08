@@ -1,38 +1,78 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useRouter } from 'expo-router';
+import { View, ActivityIndicator, Text } from "react-native";
+import SignIn from "./components/pages/signin";
+import SignUp from "./components/pages/signup";
 import Homepage from "./components/pages/homepage";
 import Profile from "./components/pages/profile";
 import Updates from './components/pages/update';
-import { supabase } from './lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { supabase } from "../supabase";
 
 export default function Index() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Check for existing session when app starts
+    const checkAuth = async () => {
+      try {
+        console.log("Checking authentication status...");
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          setIsLoggedIn(false);
+        } else if (session) {
+          console.log("User is already logged in:", session.user.email);
+          setIsLoggedIn(true);
+        } else {
+          console.log("No existing session found");
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    checkAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event);
+        
+        if (session) {
+          console.log("User logged in:", session.user.email);
+          setIsLoggedIn(true);
+        } else {
+          console.log("User logged out");
+          setIsLoggedIn(false);
+        }
+      }
+    );
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    } catch (error) {
-      console.error('Auth check error:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = () => {
+    console.log("Manual login triggered");
+    setIsLoggedIn(true);
+  };
+
+  const goToSignUp = () => {
+    setShowSignUp(true);
+  };
+
+  const goToSignIn = () => {
+    setShowSignUp(false);
   };
 
   const handleTabPress = (tabName: string) => {
@@ -52,52 +92,25 @@ export default function Index() {
     }
   };
 
+  // Show loading indicator while checking auth
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
-        <Text>Loading...</Text>
+        <Text style={{ marginTop: 10 }}>Loading...</Text>
       </View>
     );
   }
 
-  if (!user) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' }}>
-          Welcome to DonateApp
-        </Text>
-        
-        <TouchableOpacity 
-          style={{
-            backgroundColor: '#2563eb',
-            padding: 15,
-            borderRadius: 8,
-            marginBottom: 15,
-            width: '100%',
-            alignItems: 'center',
-          }}
-          onPress={() => router.push('/components/pages/login')}
-        >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={{
-            backgroundColor: '#059669',
-            padding: 15,
-            borderRadius: 8,
-            width: '100%',
-            alignItems: 'center',
-          }}
-          onPress={() => router.push('/components/pages/register')}
-        >
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Create Account</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  // Show sign in first
+  if (!isLoggedIn) {
+    if (showSignUp) {
+      return <SignUp onSignInPress={goToSignIn} />;
+    }
+    return <SignIn onLogin={handleLogin} onSignUpPress={goToSignUp} />;
   }
 
+  // Return homepage with tab navigation
   return (
     <View style={{ flex: 1 }}>
       {renderActiveScreen()}
