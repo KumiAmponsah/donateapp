@@ -1,191 +1,331 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { profileStyles } from '../styles/profile';
+import React, { useCallback, useEffect, useState, memo } from "react";
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+
 import { StatusBar } from "expo-status-bar";
-import Footer from './footer';
-import { supabase } from '../../lib/supabase';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";   // ✅ ADDED
+
+import { supabase } from "../../../supabase";
+import { profileStyles } from "../styles/profile";
+import Footer from "./footer";
+
+// ------------------------------
+//      TYPES
+// ------------------------------
 
 interface ProfileProps {
   activeTab: string;
   onTabPress: (tabName: string) => void;
 }
 
-interface UserData {
+interface UserProfile {
   id: string;
+  user_id: string;
   email: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
   avatar_url: string | null;
-  created_at: string;
-}
+  role: "donor" | "organization" | "admin";
+  is_verified: boolean;
 
-interface DonorData {
+  organization_name: string | null;
+  organization_description: string | null;
+  year_established: number | null;
+  contact_email: string | null;
+  website: string | null;
+  address: string | null;
+
   total_donations: number;
   total_donation_count: number;
   member_since: string;
+
+  created_at: string;
+  updated_at: string;
 }
 
+// ------------------------------
+//      COMPONENT
+// ------------------------------
+
 export default function Profile({ activeTab, onTabPress }: ProfileProps) {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [donor, setDonor] = useState<DonorData | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => { fetchUserData(); }, []);
+  // ------------------------------
+  //      FETCH PROFILE
+  // ------------------------------
 
-  const fetchUserData = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) return router.replace('/components/pages/login');
+      setLoading(true);
+      const { data: auth } = await supabase.auth.getUser();
 
-      const { data: userData } = await supabase.from('users').select('*').eq('id', authUser.id).single();
-      const { data: donorData } = await supabase.from('donors').select('*').eq('user_id', authUser.id).single();
+      if (!auth.user) {
+        Alert.alert("Error", "No logged-in user.");
+        return;
+      }
 
-      setUser(userData);
-      if (donorData) setDonor(donorData);
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to load user data');
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", auth.user.id)
+        .single();
+
+      if (error) throw error;
+
+      setProfile(data);
+    } catch (e) {
+      console.error("Profile fetch error:", e);
+      Alert.alert("Error", "Failed to load profile");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const pickImage = async () => {
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // ------------------------------
+  //      IMAGE COMPRESSION  ✅ NEW
+  // ------------------------------
+
+  const compressImage = async (uri: string) => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") return Alert.alert("Permission Denied", "Camera roll permission needed");
+      const result = await manipulateAsync(
+        uri,
+        [{ resize: { width: 1000 } }],   // keep good quality
+        {
+          compress: 0.7,                 // 70% quality
+          format: SaveFormat.JPEG,
+        }
+      );
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-        allowsEditing: true,
-        aspect: [1, 1],
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        await uploadProfilePicture(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert("Error", "Unable to pick image");
+      return result.uri;
+    } catch (e) {
+      console.log("Compression failed, using original image.");
+      return uri;
     }
   };
 
-  const uploadProfilePicture = async (uri: string) => {
-    if (!user) return;
-    
-    setUploading(true);
-    try {
-      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}/avatar.${fileExt}`;
+  // ------------------------------
+  //      IMAGE UPLOAD (UNCHANGED)
+  // ------------------------------
 
-      // Create FormData for React Native
+  const uploadImage = async (uri: string) => {
+    try {
+      setUploading(true);
+      const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) throw new Error("User not logged in");
+
+      const fileExt = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+      const fileName = `${auth.user.id}.${fileExt}`;
+      const filePath = `${auth.user.id}/${fileName}`;
+      const mimeType = `image/${fileExt}`;
+
       const formData = new FormData();
-      formData.append('file', {
-        uri: uri,
+      formData.append("file", {
+        uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
+        type: mimeType,
         name: fileName,
-        type: `image/${fileExt}`,
       } as any);
 
-      // Upload to Supabase storage using FormData
-      const { error: uploadError } = await supabase.storage
-        .from('user-avatars')
-        .upload(fileName, formData, { 
-          contentType: `image/${fileExt}`,
-          upsert: true 
+      const { error: uploadErr } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, formData, {
+          contentType: mimeType,
+          upsert: true,
         });
 
-      if (uploadError) {
-        console.log('Upload error details:', uploadError);
-        throw uploadError;
+      if (uploadErr) throw uploadErr;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const timestamp = new Date().getTime();
+      const avatarUrlWithCacheBust = `${publicUrlData.publicUrl}?t=${timestamp}`;
+
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: avatarUrlWithCacheBust,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", auth.user.id);
+
+      if (updateErr) throw updateErr;
+
+      if (profile) {
+        setProfile({
+          ...profile,
+          avatar_url: avatarUrlWithCacheBust,
+          updated_at: new Date().toISOString(),
+        });
       }
 
-      // Get public URL with cache busting
-      const { data: urlData } = supabase.storage.from('user-avatars').getPublicUrl(fileName);
-      const timestamp = new Date().getTime();
-      const avatarUrlWithCache = `${urlData.publicUrl}?t=${timestamp}`;
-      
-      // Update user record with avatar URL
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: avatarUrlWithCache })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      // Update local state immediately with cache-busted URL
-      setUser(prev => prev ? { ...prev, avatar_url: avatarUrlWithCache } : null);
-      Alert.alert('Success', 'Profile picture updated!');
+      Alert.alert("Success", "Profile picture updated!");
     } catch (error: any) {
-      console.error('Upload error:', error);
-      Alert.alert('Error', error.message || 'Failed to upload profile picture');
+      console.error("Upload error:", error);
+      Alert.alert("Upload Error", error.message || "Failed to upload image");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      router.replace('/components/pages/login');
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
+  // ------------------------------
+  //      PICK IMAGE  (UPDATED)
+  // ------------------------------
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert("Permission Denied", "Allow photo access to upload your avatar");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      quality: 1,
+      aspect: [1, 1],
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const originalUri = result.assets[0].uri;
+
+      // ✅ Compress FIRST
+      const compressedUri = await compressImage(originalUri);
+
+      // ✅ Then upload compressed file
+      uploadImage(compressedUri);
     }
   };
 
+  // ------------------------------
+  //      LOGOUT
+  // ------------------------------
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      Alert.alert("Logged out", "You have been signed out.");
+    } catch {
+      Alert.alert("Error", "Unable to log out.");
+    }
+  };
+
+  // ------------------------------
+  // Helper Functions
+  // ------------------------------
+
   const getInitials = () => {
-    if (!user) return 'U';
-    return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'U';
+    if (!profile) return "?";
+
+    const f = profile.first_name?.[0] ?? "";
+    const l = profile.last_name?.[0] ?? "";
+    const fallback = profile.email?.[0]?.toUpperCase() ?? "?";
+
+    return (f + l).toUpperCase() || fallback;
   };
 
   const getFullName = () => {
-    if (!user) return 'User';
-    return `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User';
+    if (!profile) return "";
+
+    if (profile.role === "organization" && profile.organization_name)
+      return profile.organization_name;
+
+    return `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || profile.email;
   };
 
-  const getMemberLevel = () => {
-    const total = donor?.total_donations || 0;
-    if (total >= 5000) return 'Gold Donor';
-    if (total >= 1000) return 'Silver Donor';
-    return 'Bronze Donor';
+  const memberLevel = () => {
+    if (!profile) return "";
+    if (profile.role === "organization") return "Organization";
+
+    const total = profile.total_donations;
+    if (total >= 5000) return "Gold Donor";
+    if (total >= 1000) return "Silver Donor";
+    return "Bronze Donor";
   };
+
+  const cedis = (n: number) => `₵ ${n.toLocaleString()}`;
+
+  // ------------------------------
+  //      LOADING
+  // ------------------------------
 
   if (loading) {
     return (
       <View style={profileStyles.mainContainer}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text>Loading...</Text>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+
+          <ActivityIndicator size="large" />
+          <Text style={{ marginTop: 10 }}>Loading profile...</Text>
         </View>
+        <Footer activeTab={activeTab} onTabPress={onTabPress} />
       </View>
     );
   }
 
+  if (!profile) {
+    return (
+      <View style={profileStyles.mainContainer}>
+        <Text>No profile found.</Text>
+        <Footer activeTab={activeTab} onTabPress={onTabPress} />
+      </View>
+    );
+  }
+
+  // ------------------------------
+  //      UI
+  // ------------------------------
+
   return (
     <View style={profileStyles.mainContainer}>
       <StatusBar style="dark" />
-      <ScrollView style={profileStyles.container} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={true}>
+
+      <ScrollView
+        style={profileStyles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         <View style={profileStyles.content}>
+          {/* HEADER */}
           <View style={profileStyles.header}>
             <View style={profileStyles.profileImageContainer}>
-              {user?.avatar_url ? (
-                <Image 
-                  source={{ 
-                    uri: user.avatar_url,
-                    cache: 'reload' // Force reload to avoid cached images
-                  }} 
-                  style={profileStyles.profileImage} 
-                  key={user.avatar_url} // Add key to force re-render when URL changes
+              {profile.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={profileStyles.profileImage}
                 />
               ) : (
                 <View style={profileStyles.profileImage}>
                   <Text style={profileStyles.profileInitials}>{getInitials()}</Text>
                 </View>
               )}
-              <TouchableOpacity style={profileStyles.editImageButton} onPress={pickImage} disabled={uploading}>
-                <Image source={require('../../../assets/images/edit.png')} style={profileStyles.cameraIcon} resizeMode="contain" />
+
+              <TouchableOpacity
+                style={profileStyles.editImageButton}
+                onPress={pickImage}
+                disabled={uploading}
+              >
+                <Image
+                  source={require("../../../assets/images/edit.png")}
+                  style={profileStyles.cameraIcon}
+                />
                 {uploading && (
                   <View style={profileStyles.uploadingOverlay}>
                     <Text style={profileStyles.uploadingText}>Uploading...</Text>
@@ -193,102 +333,193 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
                 )}
               </TouchableOpacity>
             </View>
-            
+
             <Text style={profileStyles.userName}>{getFullName()}</Text>
-            <Text style={profileStyles.memberLevel}>{getMemberLevel()}</Text>
+            <Text style={profileStyles.memberLevel}>
+              {profile.role === "organization" ? "Organization Account" : memberLevel()}
+            </Text>
+
+            {profile.role === "organization" && profile.is_verified && (
+              <Text style={{ color: "green", marginTop: 5 }}>✓ Verified Organization</Text>
+            )}
           </View>
 
+          {/* STATS */}
           <View style={profileStyles.statsContainer}>
             <View style={profileStyles.statCard}>
               <View style={profileStyles.statIconWrapper}>
-                <Image source={require('../../../assets/images/donation.png')} style={profileStyles.statIcon} resizeMode="contain" />
+                <Image
+                  source={require("../../../assets/images/donation.png")}
+                  style={profileStyles.statIcon}
+                />
               </View>
+
               <View style={profileStyles.statTextContainer}>
-                <Text style={profileStyles.statNumber}>{donor?.total_donation_count || 0}</Text>
-                <Text style={profileStyles.statLabel}>Total Donations</Text>
+                <Text style={profileStyles.statNumber}>{profile.total_donation_count}</Text>
+                <Text style={profileStyles.statLabel}>
+                  {profile.role === "organization"
+                    ? "Donations Received"
+                    : "Total Donations"}
+                </Text>
               </View>
             </View>
 
             <View style={profileStyles.statCard}>
               <View style={profileStyles.statIconWrapper}>
-                <Image source={require('../../../assets/images/profit.png')} style={profileStyles.statIconprofit} resizeMode="contain" />
+                <Image
+                  source={require("../../../assets/images/profit.png")}
+                  style={profileStyles.statIconprofit}
+                />
               </View>
+
               <View style={profileStyles.statTextContainer}>
-                <Text style={profileStyles.statNumber}>₵ {(donor?.total_donations || 0).toLocaleString()}</Text>
-                <Text style={profileStyles.statLabel}>Total Given</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={profileStyles.section}>
-            <Text style={profileStyles.sectionTitle}>Personal Information</Text>
-            
-            <View style={profileStyles.infoItem}>
-              <View style={profileStyles.infoIconWrapper}>
-                <Image source={require('../../../assets/images/email.png')} style={profileStyles.infoIcon} resizeMode="contain" />
-              </View>
-              <View style={profileStyles.infoContent}>
-                <Text style={profileStyles.infoLabel}>Email</Text>
-                <Text style={profileStyles.infoValue}>{user?.email || 'Not provided'}</Text>
-              </View>
-            </View>
-
-            <View style={profileStyles.infoItem}>
-              <View style={profileStyles.infoIconWrapper}>
-                <Image source={require('../../../assets/images/phone-call.png')} style={profileStyles.infoIcon} resizeMode="contain" />
-              </View>
-              <View style={profileStyles.infoContent}>
-                <Text style={profileStyles.infoLabel}>Phone</Text>
-                <Text style={profileStyles.infoValue}>{user?.phone || 'Not provided'}</Text>
-              </View>
-            </View>
-
-            <View style={profileStyles.infoItem}>
-              <View style={profileStyles.infoIconWrapper}>
-                <Image source={require('../../../assets/images/calendar.png')} style={profileStyles.infoIcon} resizeMode="contain" />
-              </View>
-              <View style={profileStyles.infoContent}>
-                <Text style={profileStyles.infoLabel}>Member Since</Text>
-                <Text style={profileStyles.infoValue}>
-                  {donor?.member_since ? new Date(donor.member_since).toLocaleDateString() : 'Recently'}
+                <Text style={profileStyles.statNumber}>
+                  {cedis(profile.total_donations)}
+                </Text>
+                <Text style={profileStyles.statLabel}>
+                  {profile.role === "organization" ? "Total Raised" : "Total Given"}
                 </Text>
               </View>
             </View>
           </View>
 
+          {/* INFO */}
+          <View style={profileStyles.section}>
+            <Text style={profileStyles.sectionTitle}>
+              {profile.role === "organization"
+                ? "Organization Information"
+                : "Personal Information"}
+            </Text>
+
+            <InfoItem
+              icon={require("../../../assets/images/email.png")}
+              label="Email"
+              value={profile.email}
+            />
+
+            {profile.role === "organization" && profile.contact_email && (
+              <InfoItem
+                icon={require("../../../assets/images/email.png")}
+                label="Contact Email"
+                value={profile.contact_email}
+              />
+            )}
+
+            {profile.phone && (
+              <InfoItem
+                icon={require("../../../assets/images/phone-call.png")}
+                label="Phone"
+                value={profile.phone}
+              />
+            )}
+
+            {profile.role === "organization" && profile.year_established && (
+              <InfoItem
+                icon={require("../../../assets/images/calendar.png")}
+                label="Year Established"
+                value={String(profile.year_established)}
+              />
+            )}
+
+            <InfoItem
+              icon={require("../../../assets/images/calendar.png")}
+              label="Member Since"
+              value={new Date(profile.member_since).toLocaleDateString()}
+            />
+          </View>
+
+          {/* SETTINGS */}
           <View style={profileStyles.section}>
             <Text style={profileStyles.sectionTitle}>Settings</Text>
-            
-            <TouchableOpacity style={profileStyles.settingsItem}>
-              <View style={profileStyles.settingsLeft}>
-                <View style={profileStyles.settingsIconWrapper}>
-                  <Image source={require('../../../assets/images/bell.png')} style={profileStyles.settingsIcon} resizeMode="contain" />
-                </View>
-                <Text style={profileStyles.settingsText}>Notifications</Text>
-              </View>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={profileStyles.settingsItem}>
-              <View style={profileStyles.settingsLeft}>
-                <View style={profileStyles.settingsIconWrapper}>
-                  <Image source={require('../../../assets/images/security.png')} style={profileStyles.settingsIcon} resizeMode="contain" />
-                </View>
-                <Text style={profileStyles.settingsText}>Privacy & Security</Text>
-              </View>
-            </TouchableOpacity>
+            <SettingsItem
+              icon={require("../../../assets/images/bell.png")}
+              label="Notifications"
+            />
 
-            <TouchableOpacity style={[profileStyles.settingsItem, profileStyles.lastSettingsItem]} onPress={handleLogout}>
-              <View style={profileStyles.settingsLeft}>
-                <View style={[profileStyles.settingsIconWrapper, profileStyles.logoutIconWrapper]}>
-                  <Image source={require('../../../assets/images/logout.png')} style={profileStyles.logoutIcon} resizeMode="contain" />
-                </View>
-                <Text style={profileStyles.logoutText}>Log Out</Text>
-              </View>
-            </TouchableOpacity>
+            <SettingsItem
+              icon={require("../../../assets/images/security.png")}
+              label="Privacy & Security"
+            />
+
+            <SettingsItem
+              icon={require("../../../assets/images/logout.png")}
+              label="Log Out"
+              logout
+              onPress={handleLogout}
+            />
           </View>
         </View>
       </ScrollView>
+
       <Footer activeTab={activeTab} onTabPress={onTabPress} />
     </View>
   );
 }
+
+// -------------------------------------------------------
+// REUSABLE COMPONENTS
+// -------------------------------------------------------
+
+const InfoItem = memo(
+  ({
+    icon,
+    label,
+    value,
+  }: {
+    icon: any;
+    label: string;
+    value: string;
+  }) => (
+    <View style={profileStyles.infoItem}>
+      <View style={profileStyles.infoIconWrapper}>
+        <Image source={icon} style={profileStyles.infoIcon} />
+      </View>
+
+      <View style={profileStyles.infoContent}>
+        <Text style={profileStyles.infoLabel}>{label}</Text>
+        <Text style={profileStyles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  )
+);
+
+const SettingsItem = memo(
+  ({
+    icon,
+    label,
+    logout = false,
+    onPress,
+  }: {
+    icon: any;
+    label: string;
+    logout?: boolean;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        profileStyles.settingsItem,
+        logout && profileStyles.lastSettingsItem,
+      ]}
+    >
+      <View style={profileStyles.settingsLeft}>
+        <View
+          style={[
+            profileStyles.settingsIconWrapper,
+            logout && profileStyles.logoutIconWrapper,
+          ]}
+        >
+          <Image
+            source={icon}
+            style={logout ? profileStyles.logoutIcon : profileStyles.settingsIcon}
+          />
+        </View>
+
+        <Text style={logout ? profileStyles.logoutText : profileStyles.settingsText}>
+          {label}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  )
+);

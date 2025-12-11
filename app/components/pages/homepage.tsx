@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'; 
-import { View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native'; 
+import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native'; 
 import { homepageStyles } from '../styles/homepageStyles'; 
 import Footer from './footer'; 
 import { StatusBar } from "expo-status-bar"; 
-import { useRouter } from 'expo-router'; 
-import { supabase } from '../../lib/supabase';
+import { useRouter } from 'expo-router';
 
-// Define TypeScript interfaces for Campaign 
+// ----------------------
+// INTERFACES
+// ----------------------
+
 interface Charity {
   organization_name: string;
 }
@@ -23,7 +25,6 @@ interface Campaign {
   charity: Charity | null;
 }
 
-// User data interface - same as profile.tsx
 interface UserData {
   id: string;
   email: string;
@@ -34,14 +35,16 @@ interface UserData {
   created_at: string;
 }
 
-// Stats interface
 interface Stats {
   totalRaised: number;
   totalDonors: number;
   activeCampaigns: number;
 }
 
-// Reusable Campaign Component
+// ----------------------
+// CAMPAIGN CARD
+// ----------------------
+
 const CampaignTab: React.FC<{ campaign: Campaign; isLast: boolean }> = ({ campaign, isLast }) => { 
   const router = useRouter(); 
 
@@ -57,10 +60,7 @@ const CampaignTab: React.FC<{ campaign: Campaign; isLast: boolean }> = ({ campai
     : require('../../../assets/images/campaign-water.jpg');
 
   return ( 
-    <View style={[ 
-      homepageStyles.campaignTab, 
-      isLast && homepageStyles.lastCampaignTab 
-    ]}> 
+    <View style={[homepageStyles.campaignTab, isLast && homepageStyles.lastCampaignTab]}> 
       <View style={homepageStyles.campaignImageContainer}> 
         <Image  
           source={imageSource}  
@@ -96,7 +96,7 @@ const CampaignTab: React.FC<{ campaign: Campaign; isLast: boolean }> = ({ campai
          
         <TouchableOpacity  
           style={homepageStyles.donateButton} 
-          onPress={handleDonatePress} 
+          onPress={handleDonatePress}
         > 
           <Text style={homepageStyles.donateButtonText}>Donate Now</Text> 
           <Image  
@@ -110,7 +110,10 @@ const CampaignTab: React.FC<{ campaign: Campaign; isLast: boolean }> = ({ campai
   ); 
 }; 
 
-// Profile Section Component - Using same approach as profile.tsx
+// ----------------------
+// PROFILE SECTION
+// ----------------------
+
 const ProfileSection: React.FC<{ userData: UserData | null }> = ({ userData }) => {
   const getFullName = () => {
     if (!userData) return 'User';
@@ -166,7 +169,10 @@ const ProfileSection: React.FC<{ userData: UserData | null }> = ({ userData }) =
   );
 };
 
-// Stats Section Component
+// ----------------------
+// STATS SECTION
+// ----------------------
+
 const StatsSection: React.FC<{ stats: Stats }> = ({ stats }) => (
   <View style={homepageStyles.statsContainer}>
     <View style={homepageStyles.statItem}>
@@ -217,13 +223,18 @@ const StatsSection: React.FC<{ stats: Stats }> = ({ stats }) => (
         <View style={homepageStyles.textContent}>
           <Text style={homepageStyles.numberText}>
             {stats.activeCampaigns}
-          </Text>
+          </Text
+          >
           <Text style={homepageStyles.statLabel}>Active Campaigns</Text>
         </View>
       </View>
     </View>
   </View>
 );
+
+// ----------------------
+// MAIN HOMEPAGE (STATIC DATA)
+// ----------------------
 
 interface HomepageProps { 
   activeTab: string; 
@@ -233,101 +244,49 @@ interface HomepageProps {
 export default function Homepage({ activeTab, onTabPress }: HomepageProps) { 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<Stats>({
-    totalRaised: 0,
-    totalDonors: 0,
-    activeCampaigns: 0
+    totalRaised: 125000,
+    totalDonors: 320,
+    activeCampaigns: 3
   });
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // EXACT SAME APPROACH AS profile.tsx
-  const fetchUserData = async () => {
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        console.log('No authenticated user');
-        return;
-      }
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      setUserData(userData);
-    } catch (error: any) {
-      console.log('Error fetching user data:', error.message);
-    }
-  };
-
-  const fetchCampaigns = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select(`
-          *,
-          charity:charity_foundations(organization_name)
-        `)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const transformedData: Campaign[] = (data || []).map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        image_url: item.image_url,
-        progress_percentage: item.progress_percentage,
-        amount_raised: item.amount_raised,
-        target_amount: item.target_amount,
-        donor_count: item.donor_count,
-        charity: item.charity ? { organization_name: item.charity.organization_name } : null
-      }));
-      
-      setCampaigns(transformedData);
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const { data: donationsData } = await supabase
-        .from('donations')
-        .select('amount')
-        .eq('status', 'success');
-
-      const totalRaised = donationsData?.reduce((sum, donation) => sum + donation.amount, 0) || 0;
-
-      const { count: totalDonors } = await supabase
-        .from('donors')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeCampaigns } = await supabase
-        .from('campaigns')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      setStats({
-        totalRaised,
-        totalDonors: totalDonors || 0,
-        activeCampaigns: activeCampaigns || 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchUserData(), fetchCampaigns(), fetchStats()]);
-      setLoading(false);
-    };
+    // Mock profile
+    setUserData({
+      id: "1",
+      email: "demo@example.com",
+      first_name: "John",
+      last_name: "Doe",
+      phone: null,
+      avatar_url: null,
+      created_at: ""
+    });
 
-    loadData();
+    // Mock campaigns
+    setCampaigns([
+      {
+        id: "1",
+        title: "Clean Water for All",
+        description: "Help provide clean water to rural communities.",
+        image_url: null,
+        progress_percentage: 65,
+        amount_raised: 65000,
+        target_amount: 100000,
+        donor_count: 120,
+        charity: { organization_name: "Hope Foundation" }
+      },
+      {
+        id: "2",
+        title: "Feed a Child",
+        description: "Donate to support weekly food packages for children.",
+        image_url: null,
+        progress_percentage: 80,
+        amount_raised: 80000,
+        target_amount: 100000,
+        donor_count: 200,
+        charity: { organization_name: "Helping Hands" }
+      }
+    ]);
   }, []);
 
   return ( 
@@ -343,19 +302,15 @@ export default function Homepage({ activeTab, onTabPress }: HomepageProps) {
             <ProfileSection userData={userData} />
             <StatsSection stats={stats} />
 
-            {loading ? (
-              <Text style={homepageStyles.loadingText}>Loading campaigns...</Text>
-            ) : (
-              campaigns.map((campaign, index) => ( 
-                <CampaignTab  
-                  key={campaign.id}  
-                  campaign={campaign}  
-                  isLast={index === campaigns.length - 1} 
-                /> 
-              ))
-            )}
+            {campaigns.map((campaign, index) => ( 
+              <CampaignTab  
+                key={campaign.id}  
+                campaign={campaign}  
+                isLast={index === campaigns.length - 1} 
+              /> 
+            ))}
 
-            {!loading && campaigns.length === 0 && (
+            {campaigns.length === 0 && (
               <Text style={homepageStyles.noCampaignsText}>No active campaigns found.</Text>
             )}
           </View> 
@@ -365,4 +320,4 @@ export default function Homepage({ activeTab, onTabPress }: HomepageProps) {
       </View> 
     </View> 
   ); 
-} 
+}

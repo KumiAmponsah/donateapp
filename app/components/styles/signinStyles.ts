@@ -15,6 +15,11 @@ export const signInStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
+  // In your signin styles file, add:
+  disabledButton: {
+  backgroundColor: '#ccc',
+  opacity: 0.7,
+},
   logo: {
     width: 80,
     height: 80,

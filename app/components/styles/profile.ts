@@ -303,21 +303,70 @@ profileImage: {
     fontWeight: '500',
   },
   // Add to existing profileStyles
+// Add to your profileStyles object:
+refreshButton: {
+  position: 'absolute',
+  top: 10,
+  right: 20,
+  backgroundColor: '#f0f0f0',
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+refreshButtonText: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#007AFF',
+},
 uploadingOverlay: {
   position: 'absolute',
   top: 0,
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  borderRadius: 18,
+  backgroundColor: 'rgba(0,0,0,0.5)',
   justifyContent: 'center',
   alignItems: 'center',
+  borderRadius: 100,
 },
 uploadingText: {
   color: '#FFFFFF',
   fontSize: 10,
   fontWeight: '600',
+},
+deleteImageButton: {
+  position: 'absolute',
+  top: -5,
+  right: -5,
+  backgroundColor: 'red',
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+deleteImageText: {
+  color: 'white',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
+// Add to your existing profileStyles object:
+progressBarBackground: {
+  width: '100%',
+  height: 4,
+  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  borderRadius: 2,
+  marginTop: 8,
+  overflow: 'hidden',
+},
+progressBarFill: {
+  height: '100%',
+  backgroundColor: '#4CAF50',
+  borderRadius: 2,
 },
 });
 
