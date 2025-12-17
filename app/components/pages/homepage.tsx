@@ -61,6 +61,7 @@ interface UserData {
   created_at: string;
   role: string;
   organization_name: string | null;
+  is_verified?: boolean; // Add this as optional since we're not always fetching it
 }
 
 interface Stats {
@@ -341,7 +342,8 @@ export default function Homepage({ activeTab, onTabPress }: HomepageProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch user profile data
+  // Fix 1: Update UserData interface to make created_at optional, OR update the query
+  // Let's update the query to include created_at
   const fetchUserProfile = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -351,10 +353,12 @@ export default function Homepage({ activeTab, onTabPress }: HomepageProps) {
         return;
       }
 
+      // Include created_at in the query
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, user_id, email, first_name, last_name, phone, avatar_url, role, organization_name, is_verified, created_at')
         .eq('user_id', user.id)
+        .eq('is_deleted', false)
         .single();
 
       if (error) {
@@ -369,38 +373,64 @@ export default function Homepage({ activeTab, onTabPress }: HomepageProps) {
   }, []);
 
   
-  // Fetch campaigns using the secure public function
-// Fetch campaigns using the secure public function
-const fetchCampaigns = useCallback(async () => {
-  try {
-    // Use the public function that bypasses RLS for stats
-    const { data, error } = await supabase
-      .rpc('get_campaign_stats') as { data: CampaignStats[] | null; error: any };
+  // Fetch campaigns using the simple function
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      // Use the simple homepage function
+      const { data, error } = await supabase
+        .rpc('get_homepage_campaigns') as { data: any[] | null; error: any };
 
-    if (error) {
-      console.error('Error fetching campaign stats:', error);
-      console.log('Falling back to direct query...');
-      
-      // Fallback: Fetch campaigns directly from the database
-      const { data: campaignsData, error: campaignsError } = await supabase
-        .from('campaigns')
-        .select(`
-          *,
-          charity:profiles!campaigns_organization_id_fkey (
-            organization_name
-          )
-        `)
-        .eq('status', 'active') 
-        .eq('is_deleted', false) 
-        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        
+        // Fallback: Direct query without complex joins
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('status', 'active')
+          .eq('is_deleted', false)
+          .eq('admin_approved', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (campaignsError) {
-        console.error('Error fetching campaigns fallback:', campaignsError);
+        if (campaignsError) {
+          console.error('Error fetching campaigns fallback:', campaignsError);
+          return;
+        }
+
+        // Get organization names separately to avoid recursion
+        const transformedCampaigns: Campaign[] = [];
+        for (const campaign of campaignsData || []) {
+          const { data: orgData } = await supabase
+            .from('profiles')
+            .select('organization_name')
+            .eq('id', campaign.organization_id)
+            .eq('is_deleted', false)
+            .single();
+
+          transformedCampaigns.push({
+            id: campaign.id,
+            title: campaign.title,
+            description: campaign.description,
+            image_url: campaign.image_url,
+            progress_percentage: Number(campaign.progress_percentage) || 0,
+            amount_raised: Number(campaign.amount_raised) || 0,
+            target_amount: Number(campaign.target_amount) || 0,
+            donor_count: campaign.donor_count || 0,
+            charity: orgData ? {
+              organization_name: orgData.organization_name
+            } : null,
+            status: campaign.status
+          });
+        }
+
+        setCampaigns(transformedCampaigns);
         return;
       }
 
-      const transformedCampaigns: Campaign[] = (campaignsData || []).map(campaign => ({
-        id: campaign.id,
+      // Transform the RPC data
+      const transformedCampaigns: Campaign[] = (data || []).map((campaign: any) => ({
+        id: campaign.campaign_id,
         title: campaign.title,
         description: campaign.description,
         image_url: campaign.image_url,
@@ -408,57 +438,80 @@ const fetchCampaigns = useCallback(async () => {
         amount_raised: Number(campaign.amount_raised) || 0,
         target_amount: Number(campaign.target_amount) || 0,
         donor_count: campaign.donor_count || 0,
-        charity: campaign.charity ? {
-          organization_name: campaign.charity.organization_name
+        charity: campaign.organization_name ? {
+          organization_name: campaign.organization_name
         } : null,
         status: campaign.status
       }));
 
       setCampaigns(transformedCampaigns);
-      return;
+      
+    } catch (error) {
+      console.error('Error in fetchCampaigns:', error);
     }
+  }, []);
 
-    // Transform the RPC data
-    // Transform the RPC data with new column names
-const transformedCampaigns: Campaign[] = (data || []).map((campaign: CampaignStats) => ({
-  id: campaign.c_id,  // Changed from campaign_id
-  title: campaign.c_title,
-  description: campaign.c_description,
-  image_url: campaign.c_image_url,
-  progress_percentage: Number(campaign.c_progress_percentage) || 0,
-  amount_raised: Number(campaign.c_amount_raised) || 0,
-  target_amount: Number(campaign.c_target_amount) || 0,
-  donor_count: campaign.c_donor_count || 0,
-  charity: campaign.c_organization_name ? {
-    organization_name: campaign.c_organization_name
-  } : null,
-  status: campaign.c_status
-}));
+  // Fix 2: REMOVE THIS DUPLICATE fetchStats FUNCTION (lines 297-362)
+  // Keep only ONE fetchStats function - remove the older one below
+  
+  // Fetch accurate stats using the new function
+  const fetchStats = useCallback(async () => {
+    try {
+      // Use the homepage stats function
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_homepage_stats');
 
-    setCampaigns(transformedCampaigns);
-    
-    console.log('Campaigns loaded via function:', transformedCampaigns.map(c => ({
-      title: c.title,
-      amount_raised: c.amount_raised,
-      donor_count: c.donor_count
-    })));
-    
-  } catch (error) {
-    console.error('Error in fetchCampaigns:', error);
-  }
-}, []);
+      if (statsError) {
+        console.error('Error fetching stats via function:', statsError);
+        
+        // Fallback: Simple counts without complex joins
+        const { data: activeCampaigns } = await supabase
+          .from('campaigns')
+          .select('id', { count: 'exact' })
+          .eq('status', 'active')
+          .eq('is_deleted', false)
+          .eq('admin_approved', true);
 
-// // Fallback function (keep your existing logic as backup)
-// const fetchCampaignsFallback = async () => {
-//   try {
-//     // Your existing fetchCampaigns logic here
-//     // (Keep it as backup in case the function doesn't exist)
-//   } catch (error) {
-//     console.error('Error in fetchCampaignsFallback:', error);
-//   }
-// };
+        const { data: donations } = await supabase
+          .from('donations')
+          .select('amount, donor_id')
+          .eq('status', 'completed')
+          .eq('is_deleted', false);
 
-  // Fetch accurate stats
+        const { data: donors } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'donor')
+          .eq('is_deleted', false)
+          .eq('is_blocked', false);
+
+        const totalRaised = donations?.reduce((sum, donation) => sum + Number(donation.amount || 0), 0) || 0;
+        const totalDonors = donors?.length || 0;
+        const activeCampaignsCount = activeCampaigns?.length || 0;
+
+        setStats({
+          totalRaised,
+          totalDonors,
+          activeCampaigns: activeCampaignsCount
+        });
+        return;
+      }
+
+      // Use data from the function
+      if (statsData && statsData.length > 0) {
+        setStats({
+          totalRaised: Number(statsData[0].total_raised) || 0,
+          totalDonors: Number(statsData[0].total_donors) || 0,
+          activeCampaigns: Number(statsData[0].active_campaigns) || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchStats:', error);
+    }
+  }, []);
+
+  // REMOVE THIS DUPLICATE fetchStats FUNCTION (lines 364-414)
+  /*
   const fetchStats = useCallback(async () => {
     try {
       // 1. Total Raised: Sum of all completed donations
@@ -516,6 +569,7 @@ const transformedCampaigns: Campaign[] = (data || []).map((campaign: CampaignSta
       console.error('Error in fetchStats:', error);
     }
   }, []);
+  */
 
   // DEBUG FUNCTION: Check database directly for the problematic campaign
   const debugCampaignData = useCallback(async () => {
@@ -582,8 +636,8 @@ const transformedCampaigns: Campaign[] = (data || []).map((campaign: CampaignSta
         fetchStats()
       ]);
       
-      // Run debug function to check data
-      await debugCampaignData();
+      // Comment out debug function to avoid errors
+      // await debugCampaignData();
       
     } catch (error) {
       console.error('Error loading data:', error);
@@ -591,7 +645,7 @@ const transformedCampaigns: Campaign[] = (data || []).map((campaign: CampaignSta
       setLoading(false);
       setRefreshing(false);
     }
-  }, [fetchUserProfile, fetchCampaigns, fetchStats, debugCampaignData]);
+  }, [fetchUserProfile, fetchCampaigns, fetchStats]);
 
   useEffect(() => {
     loadData();

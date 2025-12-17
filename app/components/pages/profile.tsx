@@ -10,7 +10,7 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
-
+import { useRouter } from 'expo-router';
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
@@ -21,6 +21,7 @@ import { profileStyles } from "../styles/profile";
 import Footer from "./footer";
 import ScreenContainer from "../common/ScreenContainer";
 
+import AdminModal from './admin';
 // ------------------------------
 //      TYPES
 // ------------------------------
@@ -55,8 +56,7 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
 
-  
-  total_received: number;        // Amount received BY organization (NEW)
+  total_received: number;
   total_received_count: number;
 }
 
@@ -70,7 +70,8 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-
+  const router = useRouter();
+  const [showAdminModal, setShowAdminModal] = useState(false);
   // ------------------------------
   //      FETCH PROFILE
   // ------------------------------
@@ -142,7 +143,6 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
       setUploading(true);
       setUploadProgress(0);
       
-      // Simulate progress (since Supabase doesn't provide progress events in JS SDK)
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -211,7 +211,6 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
       Alert.alert("Upload Error", error.message || "Failed to upload image");
     } finally {
       setUploading(false);
-      // Reset progress after a short delay
       setTimeout(() => setUploadProgress(0), 500);
     }
   };
@@ -351,9 +350,9 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
       <ScrollView
         style={profileStyles.container}
         contentContainerStyle={[
-     profileStyles.contentContainer,
-    { paddingBottom: 90 } // Add this - adjust number as needed
-  ]}
+          profileStyles.contentContainer,
+          { paddingBottom: 90 }
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -424,52 +423,40 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
             )}
           </View>
 
-          {/* STATS */}
-          {/* STATS */}
-<View style={profileStyles.statsContainer}>
-  <View style={profileStyles.statCard}>
-    <View style={profileStyles.statIconWrapper}>
+            <View>
+  {/* ADMIN BUTTON - Only visible to admins */}
+  {profile.role === 'admin' && (
+    <TouchableOpacity
+      style={{
+        backgroundColor: '#4A5568',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
+        marginTop: 15,
+        gap: 10,
+      }}
+      onPress={() => setShowAdminModal(true)}
+      activeOpacity={0.7}
+    >
       <Image
-        source={require("../../../assets/images/donation.png")}
-        style={profileStyles.statIcon}
+        source={require("../../../assets/images/admin.png")}
+        style={{ width: 20, height: 20, tintColor: '#FFFFFF' }}
       />
-    </View>
+      <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+        Admin Dashboard
+      </Text>
+    </TouchableOpacity>
+  )}
 
-    <View style={profileStyles.statTextContainer}>
-      <Text style={profileStyles.statNumber}>
-        {profile.role === "organization" 
-          ? profile.total_received_count || 0
-          : profile.total_donation_count}
-      </Text>
-      <Text style={profileStyles.statLabel}>
-        {profile.role === "organization"
-          ? "Donations Received"
-          : "Total Donations"}
-      </Text>
-    </View>
-  </View>
-
-  <View style={profileStyles.statCard}>
-    <View style={profileStyles.statIconWrapper}>
-      <Image
-        source={require("../../../assets/images/profit.png")}
-        style={profileStyles.statIconprofit}
-      />
-    </View>
-
-    <View style={profileStyles.statTextContainer}>
-      <Text style={profileStyles.statNumber}>
-        {cedis(profile.role === "organization" 
-          ? profile.total_received || 0
-          : profile.total_donations)}
-      </Text>
-      <Text style={profileStyles.statLabel}>
-        {profile.role === "organization" ? "Total Received" : "Total Given"}
-      </Text>
-    </View>
-  </View>
+  {/* Admin Modal */}
+  <AdminModal 
+    visible={showAdminModal}
+    onClose={() => setShowAdminModal(false)}
+  />
 </View>
-
           {/* INFO */}
           <View style={profileStyles.section}>
             <Text style={profileStyles.sectionTitle}>
@@ -515,19 +502,9 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
             />
           </View>
 
-          {/* SETTINGS */}
+          {/* LOGOUT */}
           <View style={profileStyles.section}>
-            <Text style={profileStyles.sectionTitle}>Settings</Text>
-
-            <SettingsItem
-              icon={require("../../../assets/images/bell.png")}
-              label="Notifications"
-            />
-
-            <SettingsItem
-              icon={require("../../../assets/images/security.png")}
-              label="Privacy & Security"
-            />
+            <Text style={profileStyles.sectionTitle}>Account</Text>
 
             <SettingsItem
               icon={require("../../../assets/images/logout.png")}
