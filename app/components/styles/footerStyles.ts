@@ -7,8 +7,7 @@ export const footerStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     paddingHorizontal: 20,
-    paddingVertical: 0,
-    paddingBottom: 39, // Extra padding for phone bottom buttons
+    paddingTop: 12,
     justifyContent: 'space-around',
     alignItems: 'center',
     position: 'absolute',
@@ -18,11 +17,12 @@ export const footerStyles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: -3,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 15,
+    zIndex: 100,
   },
   tabButton: {
     alignItems: 'center',
@@ -30,17 +30,24 @@ export const footerStyles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
   },
+  iconContainer: {
+    marginBottom: 4,
+    // Optional: Add this if you want the icons to be centered better
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tabIcon: {
     width: 24,
     height: 24,
     tintColor: '#A0AEC0',
-    marginBottom: 4,
   },
   activeTabIcon: {
     tintColor: '#4A5568',
+    transform: [{ scale: 1.1 }],
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller
     color: '#A0AEC0',
     fontWeight: '500',
   },

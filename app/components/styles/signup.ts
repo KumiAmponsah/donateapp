@@ -1,78 +1,82 @@
 import { StyleSheet } from 'react-native';
 
 export const signupStyles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
-    paddingTop: 100,
+    paddingHorizontal: 20,
+    paddingTop: 40, // Reduced top padding since SafeAreaWrapper handles it
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 40,
     color: '#000',
+    marginBottom: 30,
+    textAlign: 'center',
   },
   form: {
-    width: '100%',
+    flex: 1,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
     padding: 15,
-    borderRadius: 8,
     marginBottom: 15,
     fontSize: 16,
-    color: '#000',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   signupButton: {
-    backgroundColor: '#000',
-    padding: 18,
-    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    padding: 15,
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 20,
   },
-  buttonText: {
+    buttonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
   linkText: {
+    color: '#007AFF',
+    fontSize: 14,
     textAlign: 'center',
-    color: '#000',
-    fontSize: 16,
-    textDecorationLine: 'underline',
+    marginTop: 10,
   },
   // Add these styles to your existing signupStyles
 typeContainer: {
-  flexDirection: 'row',
-  marginBottom: 20,
-  gap: 10,
-},
-typeButton: {
-  flex: 1,
-  padding: 12,
-  borderRadius: 8,
-  backgroundColor: '#f0f0f0',
-  alignItems: 'center',
-},
-typeButtonActive: {
-  backgroundColor: '#000',
-},
-typeText: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: '#666',
-},
-typeTextActive: {
-  color: '#fff',
-},
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 30,
+    gap: 10,
+  },
+  typeButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+  },
+  typeButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  typeText: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  typeTextActive: {
+    color: '#fff',
+  },
 // Add this to your existing signupStyles
 disabledButton: {
-  backgroundColor: '#cccccc',
-  opacity: 0.7,
-},
+    backgroundColor: '#ccc',
+  },
 });
 export default signupStyles;

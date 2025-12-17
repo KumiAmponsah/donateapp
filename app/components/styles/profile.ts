@@ -1,18 +1,54 @@
 import { StyleSheet } from 'react-native';
 
 export const profileStyles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  // Container styles
   container: {
     flex: 1,
-    padding: 20,
-    paddingBottom: 150,
+    paddingBottom: 140,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   content: {
-    marginTop: 60,
-    paddingBottom: 120,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  
+  // Loading and error states
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#4A5568',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#4A5568',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#4A5568',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   
   // Header Section
@@ -24,20 +60,29 @@ export const profileStyles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
-  // Add to existing profileStyles
-profileImage: {
-  width: 100,
-  height: 100,
-  borderRadius: 50,
-  backgroundColor: '#4A5568',
-  justifyContent: 'center',
-  alignItems: 'center',
-  borderWidth: 3,
-  borderColor: '#FFFFFF',
-  overflow: 'hidden', // Add this for proper image display
-},
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#4A5568',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  profileImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#4A5568',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
   profileInitials: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
@@ -45,48 +90,49 @@ profileImage: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#4A5568',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
   },
   cameraIcon: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     tintColor: '#FFFFFF',
   },
   userName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2D3748',
     marginBottom: 4,
     textAlign: 'center',
   },
   memberLevel: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#4A5568',
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  editProfileButton: {
-    backgroundColor: 'transparent',
+  verifiedBadge: {
+    backgroundColor: '#E6FFFA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#4A5568',
-    borderRadius: 20,
-    paddingHorizontal: 24,
-    paddingVertical: 8,
+    borderColor: '#38B2AC',
+    marginTop: 4,
   },
-  editProfileText: {
-    fontSize: 14,
-    color: '#4A5568',
+  verifiedText: {
+    color: '#38B2AC',
+    fontSize: 12,
     fontWeight: '600',
   },
 
-  // Stats Cards - Updated to match neutral theme
+  // Stats Cards
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -102,6 +148,11 @@ profileImage: {
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   statIconWrapper: {
     width: 48,
@@ -126,49 +177,35 @@ profileImage: {
     flex: 1,
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2D3748',
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#718096',
   },
 
-  // Section Styles - Updated to match neutral theme
+  // Section Styles
   section: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2D3748',
-    marginBottom: 16,
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#4A5568',
-    fontWeight: '600',
+    marginBottom: 20,
   },
 
   // Information Items
@@ -203,55 +240,6 @@ profileImage: {
     fontSize: 14,
     color: '#2D3748',
     fontWeight: '500',
-  },
-
-  // Donation Items
-  donationItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  lastDonationItem: {
-    borderBottomWidth: 0,
-    marginBottom: 0,
-  },
-  donationContent: {
-    flex: 1,
-  },
-  donationCampaign: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3748',
-    marginBottom: 4,
-  },
-  donationDate: {
-    fontSize: 12,
-    color: '#718096',
-  },
-  donationAmountContainer: {
-    alignItems: 'flex-end',
-  },
-  donationAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4A5568',
-    marginBottom: 4,
-  },
-  statusBadge: {
-    backgroundColor: '#EDF2F7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  statusText: {
-    fontSize: 10,
-    color: '#4A5568',
-    fontWeight: '600',
   },
 
   // Settings Items
@@ -302,23 +290,53 @@ profileImage: {
     color: '#C53030',
     fontWeight: '500',
   },
-  // Add to existing profileStyles
-uploadingOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  borderRadius: 18,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-uploadingText: {
-  color: '#FFFFFF',
-  fontSize: 10,
-  fontWeight: '600',
-},
+
+  // Upload Overlay
+   progressContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4A5568',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#4A5568',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  progressSpinner: {
+    marginTop: 4,
+  },
+
+  // Refresh Button (Optional - can remove since we have pull-to-refresh)
+  refreshButton: {
+    alignSelf: 'center',
+    backgroundColor: '#4A5568',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  refreshButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
 });
 
 export default profileStyles;

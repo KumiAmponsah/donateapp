@@ -8,12 +8,10 @@
     "scheme": "donate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ckamponsah.donate"
     },
-    
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -34,16 +32,17 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-    
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    
     "plugins": [
       "expo-router",
       [
@@ -57,26 +56,23 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "react-native-compressor"
     ],
-    
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-    
     "extra": {
       "router": {},
       "eas": {
         "projectId": "aa981cab-4913-4db3-b734-088dd25c4dbd"
       }
     },
-    
     "updates": {
       "url": "https://u.expo.dev/aa981cab-4913-4db3-b734-088dd25c4dbd",
       "fallbackToCacheTimeout": 0
     },
-    
     "runtimeVersion": {
       "policy": "sdkVersion"
     }

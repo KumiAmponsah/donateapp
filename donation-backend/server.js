@@ -1,3 +1,4 @@
+// donation-backend/server.js
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,9 +8,7 @@ const app = express();
 
 // Security middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] // Replace with your actual domain
-    : ['http://localhost:3000', 'http://localhost:19006'],
+  origin: '*', // Allow all origins for mobile app
   credentials: true
 }));
 
@@ -31,17 +30,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// ========== ADD THIS MISSING ENDPOINT ==========
 // Initialize payment endpoint
 app.post('/initialize-payment', async (req, res) => {
   try {
-    const { amount, email, phone, currency, channels, campaign_id, campaign_title } = req.body;
+    const { amount, email, phone, currency, channels, donation_id, campaign_id, campaign_title } = req.body;
     
     console.log('Received payment request:', { 
       amount, 
       email, 
       phone: phone ? '***' + phone.slice(-3) : 'not provided',
       currency,
-      campaign_id 
+      campaign_id,
+      donation_id
     });
 
     // Validate required fields
@@ -72,11 +73,12 @@ app.post('/initialize-payment', async (req, res) => {
     const response = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
       {
-        amount: Math.round(amount * 100), // Convert to smallest currency unit
+        amount: Math.round(amount), // Already in pesewas from frontend
         email: email,
         currency: currency || 'GHS',
         channels: channels || ['card', 'mobile_money'],
         metadata: {
+          donation_id: donation_id,
           campaign_id: campaign_id,
           campaign_title: campaign_title,
           customer_phone: phone,
@@ -114,6 +116,7 @@ app.post('/initialize-payment', async (req, res) => {
     });
   }
 });
+// ========== END OF MISSING ENDPOINT ==========
 
 // Verify payment endpoint
 app.get('/verify-payment/:reference', async (req, res) => {
@@ -169,7 +172,7 @@ app.get('/verify-payment/:reference', async (req, res) => {
   }
 });
 
-// Webhook endpoint for Paystack
+// Webhook endpoint for Paystack (keep only one, remove duplicate)
 app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   const crypto = require('crypto');
   
@@ -240,8 +243,9 @@ app.use((error, req, res, next) => {
   });
 });
 
-// FIXED: 404 handler - Use express built-in approach
+// 404 handler
 app.use((req, res) => {
+  console.log(`404: ${req.method} ${req.path} not found`);
   res.status(404).json({
     success: false,
     error: 'Endpoint not found'
@@ -254,4 +258,10 @@ app.listen(PORT, () => {
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Paystack integration ready`);
   console.log(`💻 Local: http://localhost:${PORT}`);
+  console.log(`📱 Available endpoints:`);
+  console.log(`   POST   /initialize-payment`);
+  console.log(`   GET    /verify-payment/:reference`);
+  console.log(`   POST   /webhook`);
+  console.log(`   GET    /health`);
+  console.log(`   GET    /`);
 });

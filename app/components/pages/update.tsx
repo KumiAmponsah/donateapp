@@ -1,90 +1,153 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
+// C:\Users\cypri\Documents\donateapp\app\components\pages\update.tsx
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  Modal,
+} from 'react-native';
 import { updateStyles } from '../styles/update';
 import Footer from './footer';
+import ScreenContainer from '../common/ScreenContainer';
+import { supabase } from '../../../supabase';
+import { useRouter } from 'expo-router';
+import CreateUpdateModal from './CreateUpdateModal';
 
 // ----------------------
-// CLEAN UPDATE TYPE (ONLY UI FIELDS)
+// UPDATE TYPE WITH DATABASE FIELDS
 // ----------------------
 
 interface UpdateItem {
   id: string;
   title: string;
-  description: string;
-  date: string;
-  organization: string;
-  image?: any;
+  content: string;
+  created_at: string;
+  organization: {
+    id: string;
+    organization_name: string;
+    avatar_url?: string;
+  };
+  image_url: string | null;
   category: string;
-  readTime: number;
+  read_time_minutes: number;
+  campaign_id: string | null;
+  campaign_title?: string;
 }
 
 interface UpdateTabProps {
   update: UpdateItem;
   isLast: boolean;
+  onPress?: () => void;
 }
 
 // ----------------------
-// DATE FORMATTER (FRONTEND ONLY)
+// DATE FORMATTER
 // ----------------------
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return 'Today';
+  } else if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
 };
 
 // ----------------------
 // UPDATE CARD COMPONENT
 // ----------------------
 
-const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast }) => {
+const UpdateTab: React.FC<UpdateTabProps> = ({ update, isLast, onPress }) => {
   return (
     <TouchableOpacity
       style={[updateStyles.updateCard, isLast && updateStyles.lastUpdateCard]}
-      activeOpacity={0.9}
+      activeOpacity={0.7}
+      onPress={onPress}
     >
       <View style={updateStyles.cardAccent} />
 
       <View style={updateStyles.cardContent}>
         <View style={updateStyles.cardHeader}>
           <View style={updateStyles.organizationContainer}>
-            <View style={updateStyles.organizationDot} />
-            <Text style={updateStyles.organizationText}>
-              {update.organization}
-            </Text>
+            {update.organization.avatar_url ? (
+              <Image
+                source={{ uri: update.organization.avatar_url }}
+                style={updateStyles.organizationAvatar}
+              />
+            ) : (
+              <View style={updateStyles.organizationAvatarPlaceholder}>
+                <Text style={updateStyles.organizationAvatarText}>
+                  {update.organization.organization_name.substring(0, 2).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text style={updateStyles.organizationText}>
+                {update.organization.organization_name}
+              </Text>
+              {update.campaign_title && (
+                <Text style={updateStyles.campaignText}>
+                  For: {update.campaign_title}
+                </Text>
+              )}
+            </View>
           </View>
-          <Text style={updateStyles.dateText}>{formatDate(update.date)}</Text>
+          <Text style={updateStyles.dateText}>{formatDate(update.created_at)}</Text>
         </View>
 
         <Text style={updateStyles.updateTitle}>{update.title}</Text>
 
         <Text style={updateStyles.updateDescription} numberOfLines={2}>
-          {update.description}
+          {update.content}
         </Text>
 
         <View style={updateStyles.cardFooter}>
           <View style={updateStyles.categoryContainer}>
             <View style={updateStyles.categoryPill}>
               <Text style={updateStyles.categoryText}>
-                {update.category}
+                {update.category || 'General'}
               </Text>
             </View>
           </View>
 
-          <Text style={updateStyles.readTimeText}>{update.readTime} min read</Text>
+          <Text style={updateStyles.readTimeText}>
+            {update.read_time_minutes || 2} min read
+          </Text>
         </View>
 
         <View style={updateStyles.progressLine} />
       </View>
+
+      {update.image_url && (
+        <Image
+          source={{ uri: update.image_url }}
+          style={updateStyles.updateImage}
+          resizeMode="cover"
+        />
+      )}
     </TouchableOpacity>
   );
 };
 
 // ----------------------
-// MAIN UPDATES UI (STATIC FRONTEND)
+// MAIN UPDATES COMPONENT WITH SUPABASE INTEGRATION
 // ----------------------
 
 interface UpdatesProps {
@@ -93,42 +156,168 @@ interface UpdatesProps {
 }
 
 export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
+  const router = useRouter();
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [categories, setCategories] = useState<string[]>(['all']);
+  const [showCreateUpdateModal, setShowCreateUpdateModal] = useState(false);
 
-  useEffect(() => {
-    // PURE STATIC FRONTEND DATA
-    const mockData: UpdateItem[] = [
-      {
-        id: "1",
-        title: "New Water Pump Installed",
-        description: "A new solar-powered water pump has been successfully installed...",
-        date: new Date().toISOString(),
-        organization: "Hope Foundation",
-        image: require('../../../assets/images/campaign-water.jpg'),
-        category: "Infrastructure",
-        readTime: 3
-      },
-      {
-        id: "2",
-        title: "Children Receive School Supplies",
-        description: "Over 150 children received new school supplies this week...",
-        date: new Date(Date.now() - 86400000).toISOString(),
-        organization: "Helping Hands",
-        image: require('../../../assets/images/campaign-water.jpg'),
-        category: "Education",
-        readTime: 2
+  // Fetch updates from Supabase
+  const fetchUpdates = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Build query
+      let query = supabase
+        .from('updates')
+        .select(`
+          *,
+          organization:profiles!updates_organization_id_fkey (
+            id,
+            organization_name,
+            avatar_url
+          ),
+          campaign:campaigns!updates_campaign_id_fkey (
+            title
+          )
+        `)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
+
+      // Apply category filter if not "all"
+      if (selectedCategory !== 'all') {
+        query = query.eq('category', selectedCategory);
       }
-    ];
 
-    setUpdates(mockData);
-    setLoading(false);
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching updates:', error);
+        Alert.alert('Error', 'Failed to load updates');
+        return;
+      }
+
+      // Transform data to match our interface
+      const transformedUpdates: UpdateItem[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        created_at: item.created_at,
+        organization: {
+          id: item.organization.id,
+          organization_name: item.organization.organization_name || 'Unknown Organization',
+          avatar_url: item.organization.avatar_url
+        },
+        image_url: item.image_url,
+        category: item.category || 'general',
+        read_time_minutes: item.read_time_minutes || 2,
+        campaign_id: item.campaign_id,
+        campaign_title: item.campaign?.title
+      }));
+
+      setUpdates(transformedUpdates);
+
+      // Extract unique categories
+      const uniqueCategories = ['all', ...new Set(transformedUpdates.map(u => u.category))];
+      setCategories(uniqueCategories);
+
+    } catch (error) {
+      console.error('Error in fetchUpdates:', error);
+      Alert.alert('Error', 'Failed to load updates');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [selectedCategory]);
+
+  // Fetch user profile to determine if they're an organization
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      return data?.role;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
   }, []);
 
+  const loadUpdates = useCallback(async () => {
+    await fetchUpdates();
+  }, [fetchUpdates]);
+
+  useEffect(() => {
+    loadUpdates();
+  }, [loadUpdates]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadUpdates();
+  }, [loadUpdates]);
+
+  const handleUpdatePress = (update: UpdateItem) => {
+    router.push({
+      pathname: '/components/pages/update-detail',
+      params: { id: update.id }
+    });
+  };
+
+  const handleFilterPress = async () => {
+    Alert.alert(
+      'Filter Updates',
+      'Select a category to filter by:',
+      categories.map(category => ({
+        text: category === 'all' ? 'All Updates' : category.charAt(0).toUpperCase() + category.slice(1),
+        onPress: () => {
+          setSelectedCategory(category);
+          setLoading(true);
+        }
+      })),
+      { cancelable: true }
+    );
+  };
+
+  const handleCreateUpdate = async () => {
+    const userRole = await fetchUserProfile();
+    
+    if (userRole !== 'organization') {
+      Alert.alert(
+        'Permission Required',
+        'Only organizations can create updates. Please switch to an organization account.'
+      );
+      return;
+    }
+    
+    setShowCreateUpdateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateUpdateModal(false);
+    loadUpdates();
+  };
+
   return (
-    <View style={updateStyles.mainContainer}>
-      <ScrollView style={updateStyles.container} showsVerticalScrollIndicator={false}>
-        
+    <ScreenContainer>
+      <ScrollView
+        style={updateStyles.container}
+        contentContainerStyle={updateStyles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#4A5568"
+          />
+        }
+      >
         {/* Header */}
         <View style={updateStyles.header}>
           <View style={updateStyles.headerContent}>
@@ -138,29 +327,58 @@ export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
             </Text>
           </View>
 
-          <View style={updateStyles.headerStats}>
+          <TouchableOpacity
+            style={updateStyles.headerStats}
+            activeOpacity={0.7}
+            onPress={handleFilterPress}
+          >
             <View style={updateStyles.statPill}>
               <Text style={updateStyles.statPillNumber}>{updates.length}</Text>
-              <Text style={updateStyles.statPillLabel}>Updates</Text>
+              <Text style={updateStyles.statPillLabel}>
+                {selectedCategory === 'all' ? 'Updates' : selectedCategory}
+              </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
+
+        {/* Create Update Button (for organizations) */}
+        <TouchableOpacity
+          style={updateStyles.createUpdateButton}
+          onPress={handleCreateUpdate}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={require('../../../assets/images/add.png')}
+            style={updateStyles.createUpdateIcon}
+          />
+          <Text style={updateStyles.createUpdateText}>Create Update</Text>
+        </TouchableOpacity>
 
         {/* Timeline Section */}
         <View style={updateStyles.timelineContainer}>
           <View style={updateStyles.timelineHeader}>
             <Text style={updateStyles.timelineTitle}>Recent Activity</Text>
-            <View style={updateStyles.timelineFilter}>
-              <Text style={updateStyles.timelineFilterText}>All Updates</Text>
+            <TouchableOpacity
+              style={updateStyles.timelineFilter}
+              activeOpacity={0.7}
+              onPress={handleFilterPress}
+            >
+              <Text style={updateStyles.timelineFilterText}>
+                {selectedCategory === 'all' 
+                  ? 'All Updates' 
+                  : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
+                }
+              </Text>
               <Image
-                source={require('../../../assets/images/bell.png')}
+                source={require('../../../assets/images/filter.png')}
                 style={updateStyles.filterIcon}
               />
-            </View>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
             <View style={updateStyles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4A5568" />
               <Text style={updateStyles.loadingText}>Loading updates...</Text>
             </View>
           ) : (
@@ -168,22 +386,57 @@ export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
               {updates.map((item, index) => (
                 <View key={item.id} style={updateStyles.timelineItem}>
                   <View style={updateStyles.timelineLineContainer}>
-                    <View style={updateStyles.timelineDot} />
+                    <View style={[
+                      updateStyles.timelineDot,
+                      { backgroundColor: getCategoryColor(item.category) }
+                    ]} />
                     {index !== updates.length - 1 && (
                       <View style={updateStyles.timelineLine} />
                     )}
                   </View>
 
-                  <UpdateTab update={item} isLast={index === updates.length - 1} />
+                  <UpdateTab
+                    update={item}
+                    isLast={index === updates.length - 1}
+                    onPress={() => handleUpdatePress(item)}
+                  />
                 </View>
               ))}
 
               {updates.length === 0 && (
                 <View style={updateStyles.noUpdatesContainer}>
-                  <Text style={updateStyles.noUpdatesText}>No updates available.</Text>
-                  <Text style={updateStyles.noUpdatesSubtext}>
-                    Check back later for more information.
+                  <Image
+                    source={require('../../../assets/images/empty-updates.png')}
+                    style={updateStyles.emptyIcon}
+                  />
+                  <Text style={updateStyles.noUpdatesText}>
+                    {selectedCategory === 'all' 
+                      ? 'No updates available' 
+                      : `No updates in ${selectedCategory} category`
+                    }
                   </Text>
+                  <Text style={updateStyles.noUpdatesSubtext}>
+                    Check back later for the latest news from our partners
+                  </Text>
+                  {selectedCategory !== 'all' && (
+                    <TouchableOpacity
+                      style={updateStyles.clearFilterButton}
+                      onPress={() => {
+                        setSelectedCategory('all');
+                        setLoading(true);
+                      }}
+                    >
+                      <Text style={updateStyles.clearFilterText}>
+                        Clear Filter
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={updateStyles.refreshButton}
+                    onPress={onRefresh}
+                  >
+                    <Text style={updateStyles.refreshButtonText}>Refresh</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -193,7 +446,36 @@ export default function Updates({ activeTab, onTabPress }: UpdatesProps) {
         <View style={updateStyles.bottomSpacing} />
       </ScrollView>
 
+      {/* Modal for Create Update */}
+      <Modal
+        visible={showCreateUpdateModal}
+        animationType="slide"
+        onRequestClose={handleCloseModal}
+      >
+        <CreateUpdateModal 
+          onClose={handleCloseModal}
+          onUpdateCreated={loadUpdates}
+        />
+      </Modal>
+
       <Footer activeTab={activeTab} onTabPress={onTabPress} />
-    </View>
+    </ScreenContainer>
   );
 }
+
+// Helper function to get color based on category
+const getCategoryColor = (category: string): string => {
+  const colorMap: Record<string, string> = {
+    'general': '#4A5568',
+    'progress': '#48BB78',
+    'milestone': '#4299E1',
+    'event': '#ED8936',
+    'announcement': '#9F7AEA',
+    'emergency': '#F56565',
+    'infrastructure': '#4A5568',
+    'education': '#4299E1',
+    'health': '#F56565',
+    'agriculture': '#48BB78',
+  };
+  return colorMap[category] || '#4A5568';
+};

@@ -1,20 +1,28 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const descriptionStyles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   container: {
     flex: 1,
   },
-  content: {
-    padding: 20,
+  scrollContent: {
+    flexGrow: 1,
     paddingBottom: 40,
   },
+  content: {
+    padding: 20,
+  },
   backButton: {
-    padding: 15,
-    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  backButtonAlt: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#F7FAFC',
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 20,
   },
   backButtonText: {
     fontSize: 16,
@@ -35,16 +43,25 @@ export const descriptionStyles = StyleSheet.create({
     color: '#2D3748',
     marginBottom: 20,
     textAlign: 'center',
+    lineHeight: 32,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#F7FAFC',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statItem: {
     alignItems: 'center',
@@ -90,18 +107,18 @@ export const descriptionStyles = StyleSheet.create({
   },
   donationSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sectionTitle: {
     fontSize: 20,
@@ -116,10 +133,11 @@ export const descriptionStyles = StyleSheet.create({
     fontSize: 16,
     color: '#4A5568',
     marginBottom: 10,
+    fontWeight: '600',
   },
   amountInput: {
     backgroundColor: '#F7FAFC',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 15,
     fontSize: 18,
     color: '#2D3748',
@@ -135,8 +153,10 @@ export const descriptionStyles = StyleSheet.create({
   presetButton: {
     backgroundColor: '#4A5568',
     borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minWidth: 70,
+    alignItems: 'center',
   },
   presetButtonText: {
     color: '#FFFFFF',
@@ -151,9 +171,9 @@ export const descriptionStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#F7FAFC',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -198,19 +218,12 @@ export const descriptionStyles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#F7FAFC',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 15,
     fontSize: 16,
     color: '#2D3748',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfInput: {
-    flex: 1,
   },
   mobileMoneyNote: {
     fontSize: 12,
@@ -218,29 +231,107 @@ export const descriptionStyles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 5,
+    lineHeight: 16,
   },
   donateButton: {
     backgroundColor: '#4A5568',
     borderRadius: 25,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 10,
+  },
+  donateButtonDisabled: {
+    backgroundColor: '#718096',
+    opacity: 0.8,
   },
   donateButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   errorText: {
     fontSize: 18,
     color: '#2D3748',
     textAlign: 'center',
-    marginTop: 100,
+    marginBottom: 20,
   },
-  footer: {
-    backgroundColor: '#FFFFFF',
-    height: Platform.OS === 'android' ? 50 : 90,
-    width: '100%',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#4A5568',
+    marginTop: 10,
+  },
+  organizationContainer: {
+    backgroundColor: '#F7FAFC',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    alignSelf: 'center',
+  },
+  organizationText: {
+    fontSize: 14,
+    color: '#4A5568',
+    fontStyle: 'italic',
+  },
+  daysRemainingContainer: {
+    backgroundColor: '#4A5568',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  daysRemainingText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  statusBadge: {
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  statusActive: {
+    backgroundColor: '#48BB78',
+  },
+  statusCompleted: {
+    backgroundColor: '#38B2AC',
+  },
+  statusDraft: {
+    backgroundColor: '#A0AEC0',
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  loginReminder: {
+    backgroundColor: '#FEF3C7',
+    borderLeftWidth: 4,
+    borderLeftColor: '#D97706',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  loginReminderText: {
+    color: '#92400E',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 

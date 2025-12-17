@@ -1,23 +1,21 @@
+// Add to your existing updateStyles or create a new file
 import { StyleSheet } from 'react-native';
 
 export const updateStyles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+  scrollContent: {
     paddingBottom: 100,
   },
   
-  // Header Section
+  // Header Section (existing styles remain)
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginTop: 60,
-    marginBottom: 30,
+    marginTop: 20,
+    marginBottom: 20,
     paddingHorizontal: 5,
   },
   headerContent: {
@@ -46,6 +44,7 @@ export const updateStyles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    minWidth: 80,
   },
   statPillNumber: {
     fontSize: 18,
@@ -56,6 +55,31 @@ export const updateStyles = StyleSheet.create({
   statPillLabel: {
     fontSize: 10,
     color: '#718096',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+
+  // Create Update Button
+  createUpdateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4A5568',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginHorizontal: 5,
+    marginBottom: 25,
+    alignSelf: 'flex-start',
+  },
+  createUpdateIcon: {
+    width: 18,
+    height: 18,
+    tintColor: '#FFFFFF',
+    marginRight: 8,
+  },
+  createUpdateText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 
@@ -90,10 +114,11 @@ export const updateStyles = StyleSheet.create({
     color: '#4A5568',
     marginRight: 6,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   filterIcon: {
-    width: 12,
-    height: 12,
+    width: 14,
+    height: 14,
     tintColor: '#4A5568',
   },
 
@@ -123,7 +148,7 @@ export const updateStyles = StyleSheet.create({
     marginBottom: -8,
   },
 
-  // Update Card
+  // Update Card - Enhanced
   updateCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -136,14 +161,14 @@ export const updateStyles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
   lastUpdateCard: {
-    marginBottom: 120,
+    marginBottom: 40,
   },
   cardAccent: {
     width: 4,
@@ -156,26 +181,45 @@ export const updateStyles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   organizationContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flex: 1,
   },
-  organizationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  organizationAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+    backgroundColor: '#F7FAFC',
+  },
+  organizationAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#4A5568',
-    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  organizationAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   organizationText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#4A5568',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  campaignText: {
+    fontSize: 10,
+    color: '#718096',
+    fontStyle: 'italic',
   },
   dateText: {
     fontSize: 11,
@@ -212,14 +256,11 @@ export const updateStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  newCategoryPill: {
-    backgroundColor: '#FFF5F5',
-    borderColor: '#FED7D7',
-  },
   categoryText: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#4A5568',
+    textTransform: 'capitalize',
   },
   readTimeText: {
     fontSize: 10,
@@ -234,6 +275,12 @@ export const updateStyles = StyleSheet.create({
     height: 2,
     backgroundColor: '#EDF2F7',
   },
+  updateImage: {
+    width: 100,
+    height: '100%',
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
 
   updatesList: {
     flex: 1,
@@ -242,21 +289,30 @@ export const updateStyles = StyleSheet.create({
     height: 20,
   },
 
-  // New styles for loading and empty states
+  // Loading and empty states
   loadingContainer: {
-    padding: 40,
+    padding: 60,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingText: {
     fontSize: 16,
     color: '#718096',
+    marginTop: 16,
   },
   noUpdatesContainer: {
     padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    marginBottom: 24,
+    tintColor: '#CBD5E0',
   },
   noUpdatesText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#4A5568',
     fontWeight: '600',
     marginBottom: 8,
@@ -267,6 +323,30 @@ export const updateStyles = StyleSheet.create({
     color: '#718096',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 16,
+  },
+  clearFilterButton: {
+    backgroundColor: '#EDF2F7',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  clearFilterText: {
+    color: '#4A5568',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    backgroundColor: '#4A5568',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
