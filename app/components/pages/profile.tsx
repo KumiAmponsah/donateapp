@@ -20,7 +20,7 @@ import { supabase } from "../../../supabase";
 import { profileStyles } from "../styles/profile";
 import Footer from "./footer";
 import ScreenContainer from "../common/ScreenContainer";
-
+import OrganizationDashboardModal from './OrganizationDashboardModal';
 import AdminModal from './admin';
 // ------------------------------
 //      TYPES
@@ -72,6 +72,8 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showOrgDashboard, setShowOrgDashboard] = useState(false);
+  
   // ------------------------------
   //      FETCH PROFILE
   // ------------------------------
@@ -423,7 +425,56 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
             )}
           </View>
 
-            <View>
+           <View>
+  {/* ORGANIZATION DASHBOARD BUTTON - Only visible to verified organizations */}
+  {profile.role === 'organization' && profile.is_verified && (
+    <TouchableOpacity
+      style={{
+        backgroundColor: '#48BB78',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
+        marginTop: 15,
+        gap: 10,
+      }}
+      onPress={() => setShowOrgDashboard(true)}
+      activeOpacity={0.7}
+    >
+      <Image
+        source={require("../../../assets/images/dashboard.png")}
+        style={{ width: 20, height: 20, tintColor: '#FFFFFF' }}
+      />
+      <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+        Organization Dashboard
+      </Text>
+    </TouchableOpacity>
+  )}
+
+  {/* PENDING VERIFICATION MESSAGE - For unverified organizations */}
+  {profile.role === 'organization' && !profile.is_verified && (
+    <View style={{
+      backgroundColor: '#FEEBC8',
+      padding: 16,
+      borderRadius: 12,
+      marginTop: 15,
+      borderWidth: 1,
+      borderColor: '#F6AD55',
+    }}>
+      <Text style={{
+        color: '#D69E2E',
+        fontSize: 14,
+        fontWeight: '500',
+        textAlign: 'center',
+      }}>
+        ⏳ Your organization account is pending verification. 
+        You'll gain access to the dashboard once approved by an admin.
+      </Text>
+    </View>
+  )}
+
   {/* ADMIN BUTTON - Only visible to admins */}
   {profile.role === 'admin' && (
     <TouchableOpacity
@@ -450,6 +501,12 @@ export default function Profile({ activeTab, onTabPress }: ProfileProps) {
       </Text>
     </TouchableOpacity>
   )}
+
+  {/* Organization Dashboard Modal */}
+  <OrganizationDashboardModal 
+    visible={showOrgDashboard}
+    onClose={() => setShowOrgDashboard(false)}
+  />
 
   {/* Admin Modal */}
   <AdminModal 
